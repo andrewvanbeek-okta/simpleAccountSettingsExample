@@ -1,0 +1,43 @@
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+#rightMenu {
+  margin-left: 25%;
+  padding-left: 500px;
+}
+
+#logoImage {
+  padding-top: 10%;
+}
+
+#jumbotron {
+  height: 75%;
+  height: 200px;
+  background-color: #cccccc;
+  background-image: url("https://i.pinimg.com/originals/1a/d1/d9/1ad1d9bd78ada4ad69cb37f7872f8e90.jpg");
+
+}
+
+.ui.header {
+  text-indent: 20px;
+}
+
+.buik-header {
+  background-color: #467DC6;
+}
+
+
+
+.ui.large.button {
+    margin-left: 30px;
+}
+
+div.p {
+    text-align: center;
+}
