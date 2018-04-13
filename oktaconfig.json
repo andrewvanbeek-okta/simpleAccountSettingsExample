@@ -1,0 +1,8 @@
+{
+  "oktaAppSettings": {
+    "clientId": "your client id",
+    "oktaUrl": "you okta url ",
+    "oktaAuthorizationServer": "your authorization server url",
+    "apiToken": "your token"
+  }
+}

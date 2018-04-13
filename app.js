@@ -6,9 +6,12 @@ var logger = require('morgan');
 var BoxSDK = require('box-node-sdk');
 const okta = require('@okta/okta-sdk-nodejs');
 
+
+
+var oktaConfig = require('config.json')('./oktaconfig.json');
 const client = new okta.Client({
-  orgUrl: 'https://vanbeektech.okta.com',
-  token: '00YT-tc3t7VshtX5A6-i-XN9WyQD3mIHfhFei29RmK'    // Obtained from Developer Dashboard
+  orgUrl: oktaConfig.oktaAppSettings.oktaUrl,
+  token: oktaConfig.oktaAppSettings.apiToken    // Obtained from Developer Dashboard
 });
 
 
@@ -19,21 +22,10 @@ const session = require('express-session');
 const OktaJwtVerifier = require('@okta/jwt-verifier');
 
 const oktaJwtVerifier = new OktaJwtVerifier({
-  issuer: 'https://vanbeektech.okta.com/oauth2/aus60d8d47bCkliNc1t7'
+  issuer: oktaConfig.oktaAppSettings.oktaAuthorizationServer
 })
 
-var config = require('config.json')('./boxoktaconfig.json');
-var sdk = new BoxSDK({
-	clientID: 'j2b4bfion13s0r4ubby6b54njylwbnj7',
-	clientSecret: 'YBSN5RV2BGMrHRHcXjnDSsMuVkpO05I2',
-	appAuth: {
-		keyID: config.boxAppSettings.appAuth.publicKeyID,
-		privateKey: config.boxAppSettings.appAuth.privateKey,
-		passphrase: config.boxAppSettings.appAuth.passphrase
-	}
-});
 
-var serviceAccountClient = sdk.getAppAuthClient('enterprise', config.enterpriseID);
 
 
 var app = express();
@@ -70,13 +62,7 @@ app.get('/', (req, res) => {
     var expressSession = req.session;
     expressSession.oktaSession = true;
     expressSession.username = claims.sub
-
-    if(refreshToken != undefined){
-      res.redirect("/portal?refresh=" + refreshToken)
-    } else {
-      res.redirect("https://account.box.com/api/oauth2/authorize?response_type=code&client_id=j2b4bfion13s0r4ubby6b54njylwbnj7&redirect_uri=http://localhost:3000/saml&state=security_token%3DKnhMJatFipTAnM0nHlZA")
-    }
-
+    res.render('index')
   })
   .catch(err => {
     res.redirect('/login')
@@ -84,106 +70,72 @@ app.get('/', (req, res) => {
 })
 
 
-//if user has already authorized
-app.get('/portal', (req, res) => {
-  if(!req.session.oktaSession){
+app.get('/changePassword', (req, res) => {
+  console.log("sioejifjsioefjiohsiohfi")
 
-    res.redirect("/")
-  }
-  console.log("ya yea ya yaya")
+  var user = req.query.userId
   console.log(req.query)
-
+  console.log("user")
   var request = require("request");
+  console.log("here")
+  var url = oktaConfig.oktaAppSettings.oktaUrl + '/api/v1/users/' + user + '/credentials/change_password'
+  console.log(url)
+  var options = { method: 'POST',
+    url: url,
+    headers:
+     { 'Postman-Token': '301451a7-9c95-cdfe-a5a2-55a850a0917e',
+       'Cache-Control': 'no-cache',
+       Authorization: 'SSWS ' + oktaConfig.oktaAppSettings.apiToken,
+       'Content-Type': 'application/json',
+       Accept: 'application/json' },
+    body:
+     { oldPassword: { value: req.query.oldPassword },
+       newPassword: { value: req.query.newPassword }
+     },
+    json: true };
 
-var options = { method: 'POST',
-  url: 'https://api.box.com/oauth2/token',
-  headers:
-   { 'Postman-Token': '14083be2-b23d-ae62-19d5-5c31ae9dbfa8',
-     'Cache-Control': 'no-cache',
-     'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW' },
-  formData:
-   { grant_type: 'refresh_token',
-     refresh_token: req.query.refresh,
-     client_id: 'j2b4bfion13s0r4ubby6b54njylwbnj7',
-     client_secret: 'YBSN5RV2BGMrHRHcXjnDSsMuVkpO05I2' } };
-
-request(options, function (error, response, body) {
-  if (error) throw new Error(error);
-  console.log(body);
-  var boxTokenResponse = JSON.parse(body)
-  var token = boxTokenResponse.access_token
-  console.log(token)
-  console.log(token == undefined)
-  if(token == undefined){
-    console.log('yeah')
-    res.redirect("https://account.box.com/api/oauth2/authorize?response_type=code&client_id=j2b4bfion13s0r4ubby6b54njylwbnj7&redirect_uri=http://localhost:3000/saml&state=security_token%3DKnhMJatFipTAnM0nHlZA")
-  } else {
-    updateOktaUser(req.session.username, boxTokenResponse.refresh_token, token, res)
-  }
-
-});
-
-
+  request(options, function (error, response, body) {
+    if (error) throw new Error(error);
+    console.log(error)
+     res.end();
+    console.log(body);
+  });
+   res.end();
 
 })
 
 
-var updateOktaUser = function(username, refreshToken, token, expressRes) {
-console.log(username + "!!!!!")
-if(!expressRes.cookie.user && !expressRes.cookie.token){
-  expressRes.cookie('user', username, {maxAge: 108000})
-    var oktaUser = client.getUser(username)
-    .then(user => {
-      var oktaUser = user
-      oktaUser.profile.boxToken = refreshToken;
-      oktaUser.update().then(() => expressRes.cookie('token', token, {maxAge: 108000})).then(() => expressRes.redirect("/"))
+app.get('/resetMfa', (req, res) => {
+  console.log("sioejifjsioefjiohsiohfi")
 
-      console.log('User nickname change has been saved');
-    });
-}
-}
-
-
-
-
-app.get('/saml', (req, res) => {
-
-  if(!req.session.oktaSession){
-
-    res.redirect("/")
-  }
+  var user = req.query.userId
+  console.log(req.query)
+  console.log("user")
   var request = require("request");
-  console.log("yabo")
-console.log(req.query)
-var options = { method: 'POST',
-  url: 'https://api.box.com/oauth2/token',
-  headers:
-   { 'Postman-Token': '12507362-1057-e742-3855-372ca7b880af',
-     'Cache-Control': 'no-cache',
-     'content-type': 'multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW' },
-  formData:
-   { grant_type: 'authorization_code',
-     code: req.query.code,
-     client_id: 'j2b4bfion13s0r4ubby6b54njylwbnj7',
-     client_secret: 'YBSN5RV2BGMrHRHcXjnDSsMuVkpO05I2' } };
-
-request(options, function (error, response, body) {
-  if (error) throw new Error(error);
   console.log("here")
-  console.log(body);
-    var boxTokenResponse = JSON.parse(body)
-    var token = boxTokenResponse.access_token
-    console.log(token)
-    updateOktaUser(req.session.username, boxTokenResponse.refresh_token, token, res)
+  var url = oktaConfig.oktaAppSettings.oktaUrl + '/api/v1/users/' + user + '/lifecycle/reset_factors'
+  console.log(url)
+  var options = { method: 'POST',
+    url: url,
+    headers:
+     { 'Postman-Token': '301451a7-9c95-cdfe-a5a2-55a850a0917e',
+       'Cache-Control': 'no-cache',
+       Authorization: 'SSWS ' + oktaConfig.oktaAppSettings.apiToken,
+       'Content-Type': 'application/json',
+       Accept: 'application/json' },
+    body:
+     {
+     },
+    json: true };
 
+  request(options, function (error, response, body) {
+    if (error) throw new Error(error);
+    console.log(error)
 
-
-
-
-
-
-    //res.render('index', {test: token})
-});
+    console.log(body);
+     res.end();
+  });
+   res.end();
 
 })
 
